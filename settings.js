@@ -32,7 +32,7 @@ global.dev = "© ⍴᥆ᥕᥱrᥱძ ᑲᥡ ⁱᵃᵐ|𝔇ĕ𝐬†𝓻⊙γ𒆜
 global.author = "© mᥲძᥱ ᥕі𝗍һ ᑲᥡ ⁱᵃᵐ|𝔇ĕ𝐬†𝓻⊙γ𒆜"
 global.etiqueta = "ⁱᵃᵐ|𝔇ĕ𝐬†𝓻⊙γ𒆜"
 global.currency = "¥enes"
-global.banner = "https://i.postimg.cc/P52NvY3X/IMG-20251101-172641.png"
+global.banner = "https://github.com/jerem146/Mutina-img"
 global.icono = "https://raw.githubusercontent.com/The-King-Destroy/Adiciones/main/Contenido/1742678797993.jpeg"
 global.catalogo = fs.readFileSync('./lib/catalogo.jpg')
 
