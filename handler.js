@@ -53,8 +53,6 @@ if (!("commands" in user) || !isNumber(user.commands)) user.commands = 0
 if (!("afk" in user) || !isNumber(user.afk)) user.afk = -1
 if (!("afkReason" in user)) user.afkReason = ""
 if (!("warn" in user) || !isNumber(user.warn)) user.warn = 0
-// Nueva propiedad para el estado de mute
-if (!("isMuted" in user)) user.isMuted = false
 } else global.db.data.users[m.sender] = {
 name: m.name,
 exp: 0,
@@ -74,9 +72,7 @@ bannedReason: "",
 commands: 0,
 afk: -1,
 afkReason: "",
-warn: 0,
-// Nueva propiedad para el estado de mute
-isMuted: false
+warn: 0
 }
 const chat = global.db.data.chats[m.chat]
 if (typeof chat !== "object") global.db.data.chats[m.chat] = {}
@@ -143,19 +139,6 @@ await delay(time)
 }
 
 if (m.isBaileys) return
-
-// ** Lógica para mutear usuarios y eliminar sus mensajes **
-if (m.isGroup) {
-  const mutedUser = global.db.data.users[m.sender];
-  if (mutedUser && mutedUser.isMuted && !isROwner && !isAdmin) { // Asegúrate de que el propietario y administradores no puedan ser muteados por esto
-    if (m.key && m.key.remoteJid === m.chat) {
-      this.sendMessage(m.chat, { delete: m.key }); // Elimina el mensaje
-      return; // No procesar el mensaje del usuario muteado
-    }
-  }
-}
-// ** Fin de la lógica de muteo **
-
 m.exp += Math.ceil(Math.random() * 10)
 let usedPrefix
 const groupMetadata = m.isGroup ? { ...(conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}), ...(((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants) && { participants: ((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants || []).map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid })) }) } : {}
@@ -233,69 +216,6 @@ args = args || []
 let _args = noPrefix.trim().split(" ").slice(1)
 let text = _args.join(" ")
 command = (command || "").toLowerCase()
-
-// ** Aquí se define el comando mute y unmute **
-if (command === "mute" || command === "unmute") {
-  if (!m.isGroup) {
-    await this.reply(m.chat, `『✦』El comando *${command}* solo puede ser usado en grupos.`, m, rcanal).then(_ => m.react('✖️'));
-    continue;
-  }
-  if (!isAdmin && !isOwner) {
-    await this.reply(m.chat, `『✦』El comando *${command}* solo puede ser usado por administradores o el propietario del bot.`, m, rcanal).then(_ => m.react('✖️'));
-    continue;
-  }
-  if (!isBotAdmin) {
-    await this.reply(m.chat, `『✦』Para ejecutar el comando *${command}* debo ser administrador del grupo.`, m, rcanal).then(_ => m.react('✖️'));
-    continue;
-  }
-
-  let target = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : false;
-  if (!target) {
-    await this.reply(m.chat, `『✦』Para usar *${command}* debes etiquetar a alguien o responder a su mensaje.`, m, rcanal).then(_ => m.react('✖️'));
-    continue;
-  }
-
-  if (target === this.user.jid) {
-    await this.reply(m.chat, `『✦』No me puedo ${command === "mute" ? "mutear" : "desmutear"} a mí mismo.`, m, rcanal).then(_ => m.react('✖️'));
-    continue;
-  }
-
-  // Verificar si el objetivo es un propietario o administrador
-  const targetIsOwner = isROwner || global.owner.map((number) => number + "@s.whatsapp.net").includes(target);
-  const targetUserGroup = participants.find(u => u.jid === target);
-  const targetIsAdmin = targetUserGroup?.admin === "superadmin" || targetUserGroup?.admin === "admin";
-
-  if ((targetIsOwner || targetIsAdmin) && !isOwner) { // Solo el propietario puede mutear/desmutear a otros propietarios/administradores
-    await this.reply(m.chat, `『✦』No puedes ${command === "mute" ? "mutear" : "desmutear"} a un administrador o al propietario del bot.`, m, rcanal).then(_ => m.react('✖️'));
-    continue;
-  }
-
-
-  const targetUser = global.db.data.users[target];
-  if (!targetUser) {
-    await this.reply(m.chat, `『✦』El usuario no está registrado en la base de datos.`, m, rcanal).then(_ => m.react('✖️'));
-    continue;
-  }
-
-  if (command === "mute") {
-    if (targetUser.isMuted) {
-      await this.reply(m.chat, `『✦』El usuario @${target.split('@')[0]} ya está muteado.`, m, rcanal).then(_ => m.react('✖️'));
-      continue;
-    }
-    targetUser.isMuted = true;
-    await this.reply(m.chat, `『✦』El usuario @${target.split('@')[0]} ha sido muteado. Sus mensajes serán eliminados.`, m, rcanal).then(_ => m.react('✅'));
-  } else if (command === "unmute") {
-    if (!targetUser.isMuted) {
-      await this.reply(m.chat, `『✦』El usuario @${target.split('@')[0]} no está muteado.`, m, rcanal).then(_ => m.react('✖️'));
-      continue;
-    }
-    targetUser.isMuted = false;
-    await this.reply(m.chat, `『✦』El usuario @${target.split('@')[0]} ha sido desmuteado.`, m, rcanal).then(_ => m.react('✅'));
-  }
-  continue; // Salta el resto del procesamiento de plugins para el comando mute/unmute
-}
-// ** Fin de la definición del comando mute y unmute **
-
 const fail = plugin.fail || global.dfail
 const isAccept = plugin.command instanceof RegExp ?
 plugin.command.test(command) :
